@@ -6,6 +6,7 @@ import (
 	"upvoteTest/user"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -15,6 +16,8 @@ func setupRoutes(app *fiber.App) {
 		return c.SendString("Hello, World!")
 	})
 
+	//	get users
+	app.Get("api/v1/users", user.GetUsers)
 }
 
 func initDatabase() {
@@ -29,10 +32,17 @@ func initDatabase() {
 	fmt.Println("Database Migrated")
 }
 
-func main() {
+func Setup() *fiber.App {
 	app := fiber.New()
+	app.Use(cors.New())
 	initDatabase()
 	setupRoutes(app)
+
+	return app
+}
+
+func main() {
+	app := Setup()
 
 	app.Listen(":3000")
 }
