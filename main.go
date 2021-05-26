@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"upvoteTest/database"
 	"upvoteTest/post"
 	"upvoteTest/user"
@@ -9,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -26,17 +29,29 @@ func setupRoutes(app *fiber.App) {
 	v1.Post("/user", user.CreateUser)
 	// Get Posts
 	v1.Get("/posts", post.GetPosts)
+	// Get Post
+	v1.Get("/post/:id", post.GetPost)
 	// Create Post
 	v1.Post("/post", post.CreatePost)
 	//	Upvote
-	v1.Get("/upvote/:id", post.Upvote)
+	v1.Get("/upvote", post.Upvote)
 	//	Downvote
-	v1.Get("/downvote/:id", post.DownVote)
+	v1.Get("/downvote", post.DownVote)
 }
 
 func initDatabase() {
 	var err error
-	dsn := "upvote:clarion103@tcp(127.0.0.1:3306)/upvote_test?charset=utf8mb4&parseTime=True&loc=Local"
+	envErr := godotenv.Load()
+	if envErr != nil {
+		log.Fatal("Error loading .env file")
+	}
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USERNAME")
+	dbPW := os.Getenv("DB_PASSWORD")
+	dbURL := os.Getenv("DB_URL")
+
+	//dsn := "upvote:clarion103@tcp(127.0.0.1:3306)/upvote_test?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", dbUser, dbPW, dbURL, dbName)
 	database.DBConn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
@@ -53,6 +68,9 @@ func Setup() *fiber.App {
 	initDatabase()
 	setupRoutes(app)
 	app.Use(logger.New())
+	app.Use(func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusNotFound).SendString("Not Found")
+	})
 	return app
 }
 
